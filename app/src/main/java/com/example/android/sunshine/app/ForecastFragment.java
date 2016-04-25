@@ -1,15 +1,18 @@
 package com.example.android.sunshine.app;
 
-import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,10 +22,15 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-
 public class ForecastFragment extends Fragment {
 
     public ForecastFragment() {
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -41,11 +49,29 @@ public class ForecastFragment extends Fragment {
 
         return rootView;
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater){
+        inflater.inflate(R.menu.forecastfragment, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        int id = item.getItemId();
+
+        if (id == R.id.action_refresh){
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 }
 
-class FetchWeatherTask extends AsyncTask<String, Void, Bitmap> {
+class FetchWeatherTask extends AsyncTask<String, Void, Void> {
+
+    private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
     @Override
-    protected Bitmap doInBackground(String... params){
+    protected Void doInBackground(String... params){
         // These two need to be declared outside the try/catch
 // so that they can be closed in the finally block.
         HttpURLConnection urlConnection = null;
@@ -55,7 +81,10 @@ class FetchWeatherTask extends AsyncTask<String, Void, Bitmap> {
         String forecastJsonStr = null;
 
         try {
-            URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7");
+            String baseUrl = "http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7";
+            String apiKey = "&APPID=" + BuildConfig.OPEN_WEATHER_MAP_API_KEY;
+            URL url = new URL(baseUrl.concat(apiKey));
+
 
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setRequestMethod("GET");
@@ -65,7 +94,7 @@ class FetchWeatherTask extends AsyncTask<String, Void, Bitmap> {
             StringBuffer buffer = new StringBuffer();
             if (inputStream == null) {
                 // Nothing to do.
-                forecastJsonStr = null;
+                return null;
             }
             reader = new BufferedReader(new InputStreamReader(inputStream));
 
@@ -75,12 +104,12 @@ class FetchWeatherTask extends AsyncTask<String, Void, Bitmap> {
             }
 
             if (buffer.length() == 0) {
-                forecastJsonStr = null;
+                return null;
             }
             forecastJsonStr = buffer.toString();
         } catch (IOException e) {
-            Log.e("PlaceholderFragment", "Error ", e);
-            forecastJsonStr = null;
+            Log.e(LOG_TAG, "Error ", e);
+            return null;
         } finally{
             if (urlConnection != null) {
                 urlConnection.disconnect();
@@ -89,7 +118,7 @@ class FetchWeatherTask extends AsyncTask<String, Void, Bitmap> {
                 try {
                     reader.close();
                 } catch (final IOException e) {
-                    Log.e("PlaceholderFragment", "Error closing stream", e);
+                    Log.e(LOG_TAG, "Error closing stream", e);
                 }
             }
         }
